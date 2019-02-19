@@ -49,6 +49,15 @@ defmodule RingLogger.Autoclient do
   end
 
   @doc """
+  Write the log messages to a file since the previous time this was called.
+  """
+  def write(opts \\ []) do
+    with :ok <- check_server_started(),
+         pid <- maybe_create_client(opts),
+         do: Client.write(pid, opts)
+  end
+
+  @doc """
   Print the most recent log messages.
   """
   def tail(n, opts) do

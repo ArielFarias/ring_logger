@@ -90,7 +90,7 @@ defmodule RingLogger.Client do
   @spec next(GenServer.server(), keyword()) :: :ok | {:error, term()}
   def next(client_pid, opts \\ []) do
     {io, to_print} = GenServer.call(client_pid, :next)
-
+  
     pager = Keyword.get(opts, :pager, &IO.binwrite/2)
     pager.(io, to_print)
   end
@@ -111,6 +111,27 @@ defmodule RingLogger.Client do
   def format(client_pid, message) do
     GenServer.call(client_pid, {:format, message})
   end
+
+   @doc """
+  Write the next set of the messages in the log.
+
+  Supported options:
+
+  * `:pager` - an optional 2-arity function that takes an IO device and what to print
+  """
+  @spec write(GenServer.server(), keyword()) :: :ok | {:error, term()}
+  def write(client_pid, opts \\ []) do
+    {io, to_print} = GenServer.call(client_pid, :write)
+    
+    file_name = :os.system_time(:millisecond)
+    path = "/root/#{file_name}"
+    {:ok, file} = File.open(path, [:write])
+    pager = Keyword.get(opts, :pager, &IO.binwrite/2)
+    pager.(file, to_print)
+    File.close(file)
+    File.read(path)
+  end
+
 
   @doc """
   Run a regular expression on each entry in the log and print out the matchers.

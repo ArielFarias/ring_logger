@@ -131,6 +131,17 @@ defmodule RingLogger do
   defdelegate grep(regex_or_string, opts \\ []), to: Autoclient
 
   @doc """
+  Write the nect messages in the log.
+
+  Options include:
+
+  * Options from `attach/1`
+  * `:pager` - a function for printing log messages to the console. Defaults to `IO.binwrite/2`.
+  """
+  @spec write([client_option]) :: :ok | {:error, term()}
+  defdelegate write(opts \\ []), to: Autoclient
+
+  @doc """
   Helper method for formatting log messages per the current client's
   configuration.
   """
