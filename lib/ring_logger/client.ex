@@ -210,6 +210,25 @@ defmodule RingLogger.Client do
     end
   end
 
+  def handle_call(:write, _from, state) do
+    case Server.get(state.index, 0) do
+      [] ->
+        # No messages
+        {:reply, {state.io, []}, state}
+
+      messages ->
+        to_return =
+          messages
+          |> Enum.filter(fn message -> should_print?(message, state) end)
+          |> Enum.map(fn message -> format_message(message, state) end)
+
+        last_message = List.last(messages)
+        next_index = message_index(last_message) + 1
+
+        {:reply, {state.io, to_return}, %{state | index: next_index}}
+    end
+  end
+
   def handle_call({:tail, n}, _from, state) do
     to_return =
       Server.tail(n)
