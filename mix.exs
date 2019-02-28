@@ -4,8 +4,8 @@ defmodule RingLogger.MixProject do
   def project do
     [
       app: :ring_logger,
-      version: "0.6.1",
-      elixir: "~> 1.4",
+      version: "0.6.2",
+      elixir: "~> 1.8.1",
       start_permanent: Mix.env() == :prod,
       description: description(),
       package: package(),
@@ -30,10 +30,10 @@ defmodule RingLogger.MixProject do
 
   defp deps do
     [
-      {:ex_doc, "~> 0.18", only: :dev, runtime: false}
+      {:ex_doc, "~> 0.18", only: :dev, runtime: false},
 
       # Dependecy to adjust clock time in Raspberry on start
-      {:nerves_time, "~> 0.2", runtime: false, targets: :rpi3},
+      {:nerves_time, "~> 0.2", targets: :rpi3}
     ]
   end
 
