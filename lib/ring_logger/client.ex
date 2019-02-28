@@ -90,7 +90,7 @@ defmodule RingLogger.Client do
   @spec next(GenServer.server(), keyword()) :: :ok | {:error, term()}
   def next(client_pid, opts \\ []) do
     {io, to_print} = GenServer.call(client_pid, :next)
-  
+
     pager = Keyword.get(opts, :pager, &IO.binwrite/2)
     pager.(io, to_print)
   end
@@ -120,16 +120,11 @@ defmodule RingLogger.Client do
   * `:pager` - an optional 2-arity function that takes an IO device and what to print
   """
   @spec write(GenServer.server(), keyword()) :: :ok | {:error, term()}
-  def write(client_pid, opts \\ []) do
-    {io, to_print} = GenServer.call(client_pid, :write)
-    
-    file_name = :os.system_time(:millisecond)
-    path = "/root/#{file_name}"
-    {:ok, file} = File.open(path, [:write])
-    pager = Keyword.get(opts, :pager, &IO.binwrite/2)
-    pager.(file, to_print)
-    File.close(file)
-    File.read(path)
+  def write(client_pid, _opts) do
+    case GenServer.call(client_pid, :write) do
+      {_io, []} -> {:ok, "Nothing to save"}
+      {_io, to_print} -> to_print |> IO.iodata_to_binary() |> write_to_file()
+    end
   end
 
 
@@ -158,6 +153,18 @@ defmodule RingLogger.Client do
 
   def grep(_client_pid, _regex, _opts) do
     {:error, :invalid_regex}
+  end
+
+  defp write_to_file(to_print) do
+    {_arg, _info, file_name} = :erlang.now()
+    path = Path.join(System.user_home!(), "/#{file_name}.log")
+    case File.open(path, [:write]) do
+      {:ok, file} ->
+        IO.write(file, to_print)
+        File.close(file)
+        {:ok, "Log saved at #{path}"}
+      {:error, reason} -> {:error, reason}
+    end
   end
 
   def init(config) do
@@ -220,7 +227,7 @@ defmodule RingLogger.Client do
         to_return =
           messages
           |> Enum.filter(fn message -> should_print?(message, state) end)
-          |> Enum.map(fn message -> format_message(message, state) end)
+          |> Enum.map(fn message -> file_format_message(message, state) end)
 
         last_message = List.last(messages)
         next_index = message_index(last_message) + 1
@@ -268,6 +275,13 @@ defmodule RingLogger.Client do
     |> color_event(level, state.colors, md)
   end
 
+  defp file_format_message({level, {_, msg, ts, md}}, state) do
+    metadata = take_metadata(md, state.metadata)
+
+    state.format
+    |> apply_format(level, msg, ts, metadata)
+    |> color_event(level, %{enabled: false}, md)
+  end
   ## Helpers
 
   defp apply_format({mod, fun}, level, msg, ts, metadata) do
