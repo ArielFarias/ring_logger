@@ -29,7 +29,12 @@ defmodule RingLogger.MixProject do
   end
 
   defp deps do
-    [{:ex_doc, "~> 0.18", only: :dev, runtime: false}]
+    [
+      {:ex_doc, "~> 0.18", only: :dev, runtime: false}
+
+      # Dependecy to adjust clock time in Raspberry on start
+      {:nerves_time, "~> 0.2", runtime: false, targets: :rpi3},
+    ]
   end
 
   defp description do
